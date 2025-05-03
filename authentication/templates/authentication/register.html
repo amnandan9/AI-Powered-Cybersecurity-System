@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Register - Cyber Threat Detection{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        max-width: 400px;
+        margin: 50px auto;
+        padding: 20px;
+    }
+    .auth-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--border-color);
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 30px;
+        transition: transform 0.3s ease;
+    }
+    .auth-card:hover {
+        transform: translateY(-5px);
+    }
+    .auth-header {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 20px;
+        margin: -30px -30px 30px -30px;
+        text-align: center;
+    }
+    .auth-header i {
+        font-size: 3em;
+        margin-bottom: 15px;
+    }
+    .form-control {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: var(--text-color);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 5px;
+        border: 1px solid var(--border-color);
+        transition: border-color 0.3s ease;
+    }
+    [data-theme="dark"] .form-control {
+        background-color: rgba(0, 0, 0, 0.2);
+    }
+    .form-control:focus {
+        background-color: rgba(255, 255, 255, 0.15);
+        color: var(--text-color);
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+    .form-control.is-invalid {
+        border-color: #e74c3c;
+    }
+    .btn-auth {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        color: white;
+        width: 100%;
+        transition: transform 0.3s ease;
+    }
+    .btn-auth:hover {
+        transform: translateY(-2px);
+    }
+    .auth-link {
+        text-align: center;
+        margin-top: 20px;
+    }
+    .auth-link a {
+        color: #3498db;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+    .auth-link a:hover {
+        color: var(--text-color);
+        text-decoration: underline;
+    }
+    .error-message {
+        color: #e74c3c;
+        margin-bottom: 15px;
+        padding: 10px;
+        border-radius: 5px;
+        background-color: #fde8e8;
+        border-left: 4px solid #e74c3c;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--text-color);
+        font-weight: 500;
+    }
+    .errorlist {
+        color: #e74c3c;
+        font-size: 0.875em;
+        margin-top: 5px;
+        list-style: none;
+        padding: 0;
+    }
+    .help-text {
+        font-size: 0.875em;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <i class="fas fa-user-shield"></i>
+            <h2>Create Your Account</h2>
+        </div>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="error-message">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="id_username">Username</label>
+                <input type="text" name="username" id="id_username" class="form-control {% if form.username.errors %}is-invalid{% endif %}" required>
+                {% if form.username.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.username.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="help-text">Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.</div>
+            </div>
+            <div class="form-group">
+                <label for="id_email">Email</label>
+                <input type="email" name="email" id="id_email" class="form-control {% if form.email.errors %}is-invalid{% endif %}" required>
+                {% if form.email.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.email.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="id_password1">Password</label>
+                <input type="password" name="password1" id="id_password1" class="form-control {% if form.password1.errors %}is-invalid{% endif %}" required>
+                {% if form.password1.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.password1.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <div class="help-text">Your password must contain at least 8 characters and can't be entirely numeric.</div>
+            </div>
+            <div class="form-group">
+                <label for="id_password2">Confirm Password</label>
+                <input type="password" name="password2" id="id_password2" class="form-control {% if form.password2.errors %}is-invalid{% endif %}" required>
+                {% if form.password2.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.password2.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn-auth">Register</button>
+        </form>
+        
+        <div class="auth-link">
+            <p>Already have an account? <a href="{% url 'authentication:login' %}">Login here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %} 

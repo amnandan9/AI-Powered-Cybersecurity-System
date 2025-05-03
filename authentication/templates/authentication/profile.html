@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Profile - Cyber Threat Detection{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-container {
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+    }
+    .profile-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--border-color);
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 30px;
+    }
+    .profile-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .profile-header i {
+        font-size: 4em;
+        color: #3498db;
+        margin-bottom: 15px;
+    }
+    .profile-info {
+        margin-bottom: 30px;
+    }
+    .info-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        padding: 15px;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 8px;
+    }
+    [data-theme="dark"] .info-item {
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .info-item i {
+        font-size: 1.5em;
+        color: #3498db;
+        margin-right: 15px;
+        width: 40px;
+        text-align: center;
+    }
+    .info-label {
+        font-weight: bold;
+        color: var(--text-color);
+        margin-right: 10px;
+    }
+    .info-value {
+        color: var(--text-color);
+        opacity: 0.8;
+    }
+    .btn-edit {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        color: white;
+        transition: transform 0.3s ease;
+    }
+    .btn-edit:hover {
+        transform: translateY(-2px);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-card">
+        <div class="profile-header">
+            <i class="fas fa-user-shield"></i>
+            <h2>User Profile</h2>
+        </div>
+        <div class="profile-info">
+            <div class="info-item">
+                <i class="fas fa-user"></i>
+                <span class="info-label">Username:</span>
+                <span class="info-value">{{ user.username }}</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-envelope"></i>
+                <span class="info-label">Email:</span>
+                <span class="info-value">{{ user.email|default:"Not set" }}</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-calendar-alt"></i>
+                <span class="info-label">Joined:</span>
+                <span class="info-value">{{ user.date_joined|date:"F j, Y" }}</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-clock"></i>
+                <span class="info-label">Last Login:</span>
+                <span class="info-value">{{ user.last_login|date:"F j, Y H:i" }}</span>
+            </div>
+        </div>
+        <div class="text-center">
+            <a href="{% url 'authentication:settings' %}" class="btn btn-edit">
+                <i class="fas fa-cog me-2"></i>Edit Profile
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 
