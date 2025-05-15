@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Real-Time Threat Monitoring</h2>
+
+<div id="real-time-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Source IP</th>
+                <th>Destination IP</th>
+                <th>Threat Type</th>
+                <th>Severity</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody id="threat-data">
+            <!-- Threat data will be loaded here dynamically -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function fetchThreats() {
+        fetch("{% url 'real_time_threats' %}")  // Fetch data from real-time API
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById("threat-data");
+                tableBody.innerHTML = ""; // Clear existing data
+                
+                data.threats.forEach(threat => {
+                    let row = `
+                        <tr>
+                            <td>${threat.source_ip}</td>
+                            <td>${threat.destination_ip}</td>
+                            <td>${threat.threat_type}</td>
+                            <td>${threat.severity}</td>
+                            <td>${threat.timestamp}</td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            })
+            .catch(error => console.error("Error fetching threats:", error));
+    }
+
+    // Fetch threats every 5 seconds
+    setInterval(fetchThreats, 5000);
+    fetchThreats();  // Initial call
+</script>
+
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Threat Logs - Cyber Threat Detection{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--border-color);
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        margin-bottom: 20px;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+    }
+    .card-header {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 15px;
+    }
+    .log-item {
+        border-left: 4px solid #3498db;
+        padding: 15px;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+        border-radius: 5px;
+    }
+    .severity-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+    }
+    .severity-low { background-color: #10B981; color: white; }
+    .severity-medium { background-color: #F59E0B; color: white; }
+    .severity-high { background-color: #EF4444; color: white; }
+    .severity-critical { background-color: #7F1D1D; color: white; }
+    .ip-badge {
+        background: #E5E7EB;
+        color: #374151;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+    .description {
+        color: #4B5563;
+        font-size: 0.95em;
+        margin-top: 10px;
+        padding: 10px;
+        background: #E5E7EB;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-list-alt me-2"></i>Threat Logs</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Historical Threat Data</h5>
+                </div>
+                <div class="card-body">
+                    {% if threats %}
+                        {% for threat in threats %}
+                        <div class="log-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="mb-2">{{ threat.threat_type }}</h5>
+                                    <div class="mb-2">
+                                        <span class="ip-badge me-2">
+                                            <i class="fas fa-arrow-right me-1"></i>{{ threat.source_ip }}
+                                        </span>
+                                        <i class="fas fa-long-arrow-alt-right mx-2"></i>
+                                        <span class="ip-badge">
+                                            <i class="fas fa-bullseye me-1"></i>{{ threat.destination_ip }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <span class="severity-badge severity-{{ threat.severity|lower }}">
+                                    {{ threat.severity|title }}
+                                </span>
+                            </div>
+                            {% if threat.description %}
+                            <div class="description">
+                                <i class="fas fa-info-circle me-2"></i>{{ threat.description }}
+                            </div>
+                            {% endif %}
+                            <div class="text-muted mt-2">
+                                <small><i class="fas fa-clock me-1"></i>{{ threat.timestamp|date:"F j, Y H:i:s" }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>No threats found in the selected time period.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

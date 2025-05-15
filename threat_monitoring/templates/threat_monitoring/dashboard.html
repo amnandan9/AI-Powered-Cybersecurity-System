@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Threat Monitoring Dashboard - Cyber Threat Detection{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--border-color);
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        margin-bottom: 20px;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+    }
+    .card-header {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 15px;
+    }
+    .severity-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+    }
+    .severity-low { background-color: #10B981; color: white; }
+    .severity-medium { background-color: #F59E0B; color: white; }
+    .severity-high { background-color: #EF4444; color: white; }
+    .severity-critical { background-color: #7F1D1D; color: white; }
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+    }
+    .status-new { background-color: #3B82F6; color: white; }
+    .status-investigating { background-color: #F59E0B; color: white; }
+    .status-contained { background-color: #10B981; color: white; }
+    .status-resolved { background-color: #6B7280; color: white; }
+    .refresh-button {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .refresh-button:hover {
+        background: linear-gradient(45deg, #2980b9, #3498db);
+        transform: translateY(-2px);
+    }
+    .refresh-button:disabled {
+        background: #95a5a6;
+        cursor: not-allowed;
+    }
+    .last-updated {
+        font-size: 0.9em;
+        color: #666;
+        margin-top: 10px;
+    }
+    .new-threat {
+        animation: highlight 2s ease-out;
+    }
+    @keyframes highlight {
+        0% { background-color: #fff3cd; }
+        100% { background-color: white; }
+    }
+    .location-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background-color: #f8f9fa;
+        color: #495057;
+        font-size: 0.875rem;
+    }
+    
+    .location-badge i {
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Threat Monitoring Dashboard</h2>
+        <div>
+            <form method="post" action="{% url 'monitoring:fetch_intelligence' %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="refresh-button" id="refreshBtn">
+                    <i class="fas fa-sync-alt me-2"></i>Fetch fetch_latest_intelligence 
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Stats Section -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="dashboard-card">
+                <div class="card-body text-center">
+                    <h5>Total Threats</h5>
+                    <h3 id="totalThreats">{{ stats.total }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card">
+                <div class="card-body text-center">
+                    <h5>Active Threats</h5>
+                    <h3 id="activeThreats">{{ stats.active }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card">
+                <div class="card-body text-center">
+                    <h5>Critical Threats</h5>
+                    <h3 id="criticalThreats">{{ stats.critical }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card">
+                <div class="card-body text-center">
+                    <h5>Resolved</h5>
+                    <h3 id="resolvedThreats">{{ stats.resolved }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="dashboard-card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="time_frame" class="form-label">Time Frame</label>
+                    <select name="time_frame" id="time_frame" class="form-select" onchange="this.form.submit()">
+                        {% for value, label in time_frames %}
+                        <option value="{{ value }}" {% if value == selected_time_frame %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="severity" class="form-label">Severity</label>
+                    <select name="severity" id="severity" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Severities</option>
+                        {% for severity in severities %}
+                        <option value="{{ severity }}" {% if severity == selected_severity %}selected{% endif %}>{{ severity|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Threats Table -->
+    <div class="dashboard-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recent Threats</h5>
+            <div class="last-updated" style="color: white;">
+                Last updated: <span id="lastUpdated">{{ last_updated|date:"Y-m-d H:i:s" }}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if threats %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Source IP</th>
+                            <th>Source Location</th>
+                            <th>Destination IP</th>
+                            <th>Destination Location</th>
+                            <th>Threat Type</th>
+                            <th>Severity</th>
+                            <th>Risk Score</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="threatsTableBody">
+                        {% for threat in threats %}
+                        <tr class="{% if forloop.counter <= 5 %}new-threat{% endif %}">
+                            <td>{{ threat.timestamp|date:"Y-m-d H:i:s" }}</td>
+                            <td>{{ threat.source_ip }}</td>
+                            <td>
+                                <span class="location-badge">
+                                    {% if threat.source_location %}
+                                        {% if threat.source_location.country and threat.source_location.country != 'Unidentified Country' %}
+                                            {{ threat.source_location.country }}
+                                            {% if threat.source_location.city and threat.source_location.city != 'Local Network' %}
+                                                ({{ threat.source_location.city }})
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">{{ threat.source_location.country }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">Location Not Available</span>
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>{{ threat.destination_ip }}</td>
+                            <td>
+                                <span class="location-badge">
+                                    {% if threat.destination_location %}
+                                        {% if threat.destination_location.country and threat.destination_location.country != 'Unidentified Country' %}
+                                            {{ threat.destination_location.country }}
+                                            {% if threat.destination_location.city and threat.destination_location.city != 'Local Network' %}
+                                                ({{ threat.destination_location.city }})
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">{{ threat.destination_location.country }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">Location Not Available</span>
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>{{ threat.threat_type }}</td>
+                            <td>
+                                <span class="severity-badge severity-{{ threat.severity|lower }}">
+                                    {{ threat.severity|title }}
+                                </span>
+                            </td>
+                            <td>{{ threat.ai_risk_score }}%</td>
+                            <td>
+                                <span class="status-badge status-{{ threat.status|lower }}">
+                                    {{ threat.status|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'monitoring:analyze_threat' threat.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-search"></i> Analyze
+                                    </a>
+                                    {% if threat.status != 'resolved' %}
+                                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span class="visually-hidden">Toggle Dropdown</span>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <form method="post" action="{% url 'monitoring:update_threat_status' threat.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="status" value="investigating">
+                                                <button type="submit" class="dropdown-item" onclick="return confirm('Are you sure you want to mark this threat as investigating?')">
+                                                    <i class="fas fa-search me-2"></i>Mark as Investigating
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form method="post" action="{% url 'monitoring:update_threat_status' threat.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="status" value="contained">
+                                                <button type="submit" class="dropdown-item" onclick="return confirm('Are you sure you want to mark this threat as contained?')">
+                                                    <i class="fas fa-shield-alt me-2"></i>Mark as Contained
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form method="post" action="{% url 'monitoring:update_threat_status' threat.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="status" value="resolved">
+                                                <button type="submit" class="dropdown-item" onclick="return confirm('Are you sure you want to mark this threat as resolved?')">
+                                                    <i class="fas fa-check me-2"></i>Mark as Resolved
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>No threats found in the selected time period.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Function to fetch new data
+    function fetchNewData() {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch('{% url "monitoring:fetch_intelligence" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Update threat counts
+                document.getElementById('totalThreats').textContent = data.stats.total;
+                document.getElementById('activeThreats').textContent = data.stats.active;
+                document.getElementById('criticalThreats').textContent = data.stats.critical;
+                document.getElementById('resolvedThreats').textContent = data.stats.resolved;
+                
+                // Update last updated timestamp
+                const lastUpdated = document.getElementById('lastUpdated');
+                lastUpdated.textContent = new Date().toLocaleString();
+                lastUpdated.style.color = 'white';
+                
+                // Show success message
+                const messagesDiv = document.createElement('div');
+                messagesDiv.className = 'alert alert-success alert-dismissible fade show';
+                messagesDiv.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.querySelector('.messages').appendChild(messagesDiv);
+                
+                // Reload the page after a short delay to show the new data
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching new data:', error);
+            const messagesDiv = document.createElement('div');
+            messagesDiv.className = 'alert alert-danger alert-dismissible fade show';
+            messagesDiv.innerHTML = `
+                <i class="fas fa-exclamation-circle me-2"></i>Error fetching new data: ${error.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.querySelector('.messages').appendChild(messagesDiv);
+        });
+    }
+
+    // Disable refresh button after click to prevent multiple submissions
+    document.getElementById('refreshBtn').addEventListener('click', function() {
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Refreshing...';
+        
+        // Fetch new data
+        fetchNewData();
+        
+        setTimeout(() => {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh Threats';
+        }, 5000);
+    });
+
+    // Auto-refresh every 30 seconds
+    setInterval(fetchNewData, 30000);
+</script>
+{% endblock %}
+
