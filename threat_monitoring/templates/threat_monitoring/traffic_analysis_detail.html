@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Traffic Analysis Details - Cyber Threat Detection{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analysis-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--border-color);
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        margin-bottom: 20px;
+    }
+    .analysis-card:hover {
+        transform: translateY(-5px);
+    }
+    .card-header {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 15px;
+    }
+    .stat-card {
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    .stat-value {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    .stat-label {
+        color: #64748b;
+        font-size: 0.9em;
+    }
+    .traffic-source {
+        padding: 10px;
+        border-radius: 5px;
+        background: #f1f5f9;
+        margin-bottom: 10px;
+    }
+    .suspicious-ip {
+        padding: 10px;
+        border-radius: 5px;
+        background: #fee2e2;
+        margin-bottom: 10px;
+    }
+    .recommendation {
+        padding: 10px;
+        border-radius: 5px;
+        background: #f0fdf4;
+        margin-bottom: 10px;
+    }
+    .bot-percentage {
+        font-size: 2em;
+        font-weight: bold;
+    }
+    .bot-percentage.high {
+        color: #ef4444;
+    }
+    .bot-percentage.medium {
+        color: #f59e0b;
+    }
+    .bot-percentage.low {
+        color: #10b981;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-chart-line me-2"></i>Traffic Analysis Details</h2>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'monitoring:traffic_analysis' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Analysis
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="analysis-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Analysis Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ results.analysis_summary.total_requests }}</div>
+                        <div class="stat-label">Total Requests</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ results.analysis_summary.unique_visitors }}</div>
+                        <div class="stat-label">Unique Visitors</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ results.analysis_summary.bot_traffic }}</div>
+                        <div class="stat-label">Bot Traffic</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="bot-percentage {% if results.analysis_summary.bot_percentage > 30 %}high{% elif results.analysis_summary.bot_percentage > 10 %}medium{% else %}low{% endif %}">
+                            {{ results.analysis_summary.bot_percentage|floatformat:1 }}%
+                        </div>
+                        <div class="stat-label">Bot Traffic Percentage</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="analysis-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Traffic Sources</h5>
+                </div>
+                <div class="card-body">
+                    {% for source, data in traffic_sources.items %}
+                    <div class="traffic-source">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ source|title }}</h6>
+                                <small class="text-muted">{{ data.count }} requests</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-primary">
+                                    {{ data.percentage }}%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="analysis-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Suspicious IPs</h5>
+                </div>
+                <div class="card-body">
+                    {% for ip, details in results.suspicious_ips.items %}
+                    <div class="suspicious-ip">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ ip }}</h6>
+                                <small class="text-muted">{{ details.user_agent }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-danger">{{ details.requests }} requests</span>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-danger">
+                                <i class="fas fa-info-circle me-1"></i>{{ details.reason }}
+                            </small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="analysis-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    {% for recommendation in results.recommendations %}
+                    <div class="recommendation">
+                        <i class="fas fa-check-circle me-2 text-success"></i>{{ recommendation }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

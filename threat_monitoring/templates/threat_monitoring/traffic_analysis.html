@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Website Traffic Analysis - Cyber Threat Detection{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analysis-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--border-color);
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        margin-bottom: 20px;
+    }
+    .analysis-card:hover {
+        transform: translateY(-5px);
+    }
+    .card-header {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 15px;
+    }
+    .url-input {
+        border-radius: 10px;
+        padding: 10px 15px;
+        border: 2px solid #e2e8f0;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+    .url-input:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+    .analyze-button {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .analyze-button:hover {
+        background: linear-gradient(45deg, #2980b9, #3498db);
+        transform: translateY(-2px);
+    }
+    .recent-analysis {
+        border-left: 4px solid #3498db;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        background: #f8fafc;
+        border-radius: 5px;
+    }
+    .bot-percentage {
+        font-size: 1.2em;
+        font-weight: bold;
+    }
+    .bot-percentage.high {
+        color: #ef4444;
+    }
+    .bot-percentage.medium {
+        color: #f59e0b;
+    }
+    .bot-percentage.low {
+        color: #10b981;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-chart-line me-2"></i>Website Traffic Analysis</h2>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="analysis-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-search me-2"></i>Analyze Website Traffic</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'monitoring:traffic_analysis' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="website_url" class="form-label">Website URL</label>
+                            <input type="url" class="url-input" id="website_url" name="website_url" 
+                                   placeholder="https://example.com" required>
+                        </div>
+                        <button type="submit" class="analyze-button">
+                            <i class="fas fa-search me-2"></i>Analyze Traffic
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="analysis-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Analyses</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_analyses %}
+                        {% for analysis in recent_analyses %}
+                        <div class="recent-analysis">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ analysis.website_url }}</h6>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>{{ analysis.analysis_date|date:"M j, Y H:i" }}
+                                    </small>
+                                </div>
+                                <div>
+                                    <span class="bot-percentage {% if analysis.bot_traffic_percentage > 30 %}high{% elif analysis.bot_traffic_percentage > 10 %}medium{% else %}low{% endif %}">
+                                        {{ analysis.bot_traffic_percentage|floatformat:1 }}%
+                                    </span>
+                                </div>
+                            </div>
+                            <a href="{% url 'monitoring:traffic_analysis_detail' analysis.id %}" class="btn btn-sm btn-outline-primary mt-2">
+                                View Details
+                            </a>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>No recent analyses found.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
