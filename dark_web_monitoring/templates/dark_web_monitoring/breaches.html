@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Leaked Credentials & Exposed IPs</h2>
+<table border="1">
+    <tr>
+        <th>Alert Type</th>
+        <th>Affected Data</th>
+        <th>Source</th>
+        <th>Severity</th>
+        <th>Timestamp</th>
+    </tr>
+    {% for alert in alerts %}
+    {% if alert.alert_type == 'credentials_leak' or alert.alert_type == 'ip_exposure' %}
+    <tr>
+        <td>{{ alert.alert_type }}</td>
+        <td>{{ alert.affected_data }}</td>
+        <td>{{ alert.source }}</td>
+        <td>{{ alert.severity }}</td>
+        <td>{{ alert.timestamp }}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+</table>
+{% endblock %}
