@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card bg-dark text-light">
+                <div class="card-header">
+                    <h3 class="mb-0">Share Your Feedback</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'feedback:submit' %}" class="mb-4">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="id_title" class="form-label">Title</label>
+                            {{ form.title }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_content" class="form-label">Your Feedback</label>
+                            {{ form.content }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_rating" class="form-label">Rating</label>
+                            {{ form.rating }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Submit Feedback</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="text-light mb-0">Recent Feedback</h3>
+                    <div class="d-flex gap-2">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light dropdown-toggle" type="button" id="sortFilter" data-bs-toggle="dropdown">
+                                {% if sort_by == 'likes' %}Most Liked{% else %}Most Recent{% endif %}
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="?sort=likes{% if time_filter %}&time_filter={{ time_filter }}{% endif %}{% if rating_filter %}&rating={{ rating_filter }}{% endif %}">Most Liked</a></li>
+                                <li><a class="dropdown-item" href="?sort=recent{% if time_filter %}&time_filter={{ time_filter }}{% endif %}{% if rating_filter %}&rating={{ rating_filter }}{% endif %}">Most Recent</a></li>
+                            </ul>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light dropdown-toggle" type="button" id="timeFilter" data-bs-toggle="dropdown">
+                                {% if time_filter == 'all' %}All Time{% elif time_filter == 'week' %}Last Week{% else %}Last Month{% endif %}
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="?sort={{ sort_by }}&time_filter=all{% if rating_filter %}&rating={{ rating_filter }}{% endif %}">All Time</a></li>
+                                <li><a class="dropdown-item" href="?sort={{ sort_by }}&time_filter=week{% if rating_filter %}&rating={{ rating_filter }}{% endif %}">Last Week</a></li>
+                                <li><a class="dropdown-item" href="?sort={{ sort_by }}&time_filter=month{% if rating_filter %}&rating={{ rating_filter }}{% endif %}">Last Month</a></li>
+                            </ul>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light dropdown-toggle" type="button" id="ratingFilter" data-bs-toggle="dropdown">
+                                {% if rating_filter %}Rating: {{ rating_filter }}⭐{% else %}All Ratings{% endif %}
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="?sort={{ sort_by }}&rating={% if time_filter %}&time_filter={{ time_filter }}{% endif %}">All Ratings</a></li>
+                                <li><a class="dropdown-item" href="?sort={{ sort_by }}&rating=5{% if time_filter %}&time_filter={{ time_filter }}{% endif %}">⭐⭐⭐⭐⭐</a></li>
+                                <li><a class="dropdown-item" href="?sort={{ sort_by }}&rating=4{% if time_filter %}&time_filter={{ time_filter }}{% endif %}">⭐⭐⭐⭐</a></li>
+                                <li><a class="dropdown-item" href="?sort={{ sort_by }}&rating=3{% if time_filter %}&time_filter={{ time_filter }}{% endif %}">⭐⭐⭐</a></li>
+                                <li><a class="dropdown-item" href="?sort={{ sort_by }}&rating=2{% if time_filter %}&time_filter={{ time_filter }}{% endif %}">⭐⭐</a></li>
+                                <li><a class="dropdown-item" href="?sort={{ sort_by }}&rating=1{% if time_filter %}&time_filter={{ time_filter }}{% endif %}">⭐</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                {% for feedback in page_obj %}
+                <div class="card bg-dark text-light mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ feedback.user.username }}</strong>
+                            <small class="text-muted ms-2">{{ feedback.created_at|date:"F j, Y" }}</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="likes-badge bg-primary text-white px-2 py-1 rounded">
+                                <i class="fas fa-thumbs-up"></i>
+                                <span class="likes-count">{{ feedback.likes.count }}</span>
+                            </div>
+                            <div class="rating">
+                                {{ feedback.get_rating_stars }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ feedback.title }}</h5>
+                        <p class="card-text">{{ feedback.content }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                {% if user.is_staff %}
+                                <form method="post" action="{% url 'feedback:delete' feedback.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this feedback?')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <button class="btn btn-outline-primary like-btn" 
+                                    data-feedback-id="{{ feedback.id }}"
+                                    data-liked="{% if request.user in feedback.likes.all %}true{% else %}false{% endif %}">
+                                <i class="fas fa-thumbs-up"></i>
+                                Like
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="alert alert-info">
+                    No feedback yet. Be the first to share your thoughts!
+                </div>
+                {% endfor %}
+
+                {% if page_obj.paginator.num_pages > 1 %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if time_filter %}&time_filter={{ time_filter }}{% endif %}{% if rating_filter %}&rating={{ rating_filter }}{% endif %}">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                        <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if time_filter %}&time_filter={{ time_filter }}{% endif %}{% if rating_filter %}&rating={{ rating_filter }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if time_filter %}&time_filter={{ time_filter }}{% endif %}{% if rating_filter %}&rating={{ rating_filter }}{% endif %}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const likeButtons = document.querySelectorAll('.like-btn');
+    
+    likeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const feedbackId = this.dataset.feedbackId;
+            const isLiked = this.dataset.liked === 'true';
+            
+            fetch(`/feedback/like/${feedbackId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const icon = this.querySelector('i');
+                const countSpan = this.closest('.card').querySelector('.likes-count');
+                
+                if (data.liked) {
+                    icon.classList.add('text-primary');
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('btn-primary');
+                } else {
+                    icon.classList.remove('text-primary');
+                    this.classList.add('btn-outline-primary');
+                    this.classList.remove('btn-primary');
+                }
+                
+                countSpan.textContent = data.likes_count;
+                this.dataset.liked = data.liked;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 
