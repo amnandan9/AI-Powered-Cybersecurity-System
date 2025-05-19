@@ -1,0 +1,433 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-dark">
+                <div class="card-header bg-dark text-light border-bottom border-primary">
+                    <h4 class="card-title text-cyan">Global Threat Intelligence Map</h4>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <p class="text-muted mb-0">Live Cyber Threat Monitoring</p>
+                        <div class="map-controls">
+                            <button class="btn btn-sm btn-outline-cyan" id="resetView">Reset View</button>
+                            <button class="btn btn-sm btn-outline-cyan" id="toggleFullscreen">Fullscreen</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0 position-relative">
+                    <div id="threat-map" style="height: 80vh; width: 100%;"></div>
+                    <div id="threat-feed" class="threat-feed"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Leaflet CSS and JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<style>
+    .threat-popup {
+        background: rgba(0, 0, 0, 0.8) !important;
+        color: #00ffff !important;
+        border: 1px solid #00ffff !important;
+        border-radius: 5px !important;
+    }
+    .threat-popup .leaflet-popup-content-wrapper {
+        background: rgba(0, 0, 0, 0.8) !important;
+        color: #00ffff !important;
+    }
+    .threat-popup .leaflet-popup-tip {
+        background: rgba(0, 0, 0, 0.8) !important;
+        border: 1px solid #00ffff !important;
+    }
+    .map-controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+    }
+    .btn-outline-cyan {
+        color: #00ffff;
+        border-color: #00ffff;
+    }
+    .btn-outline-cyan:hover {
+        background-color: #00ffff;
+        color: #000;
+    }
+    .glow {
+        filter: drop-shadow(0 0 5px #00ffff);
+    }
+
+    /* New styles for threat feed */
+    .threat-feed {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 300px;
+        max-height: 80%;
+        overflow: hidden;
+        z-index: 1000;
+        pointer-events: none;
+    }
+
+    .threat-notification {
+        background: rgba(0, 0, 0, 0.8);
+        border: 1px solid;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 10px;
+        color: #fff;
+        font-size: 0.9em;
+        transform: translateX(100%);
+        animation: slideIn 0.5s forwards, fadeOut 0.5s 4.5s forwards;
+        backdrop-filter: blur(5px);
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    }
+
+    .threat-arrow {
+        position: absolute;
+        font-size: 12px;
+        color: #fff;
+        text-shadow: 0 0 5px rgba(0, 255, 255, 0.8);
+        pointer-events: none;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 3px 8px;
+        border-radius: 3px;
+        white-space: nowrap;
+    }
+
+    @keyframes slideIn {
+        to {
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes fadeOut {
+        to {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+    }
+
+    .location-label {
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        padding: 3px 8px;
+        border-radius: 3px;
+        border: 1px solid;
+        font-size: 12px;
+        white-space: nowrap;
+        backdrop-filter: blur(5px);
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    }
+</style>
+
+<script>
+    // Initialize the map with a darker theme
+    var map = L.map('threat-map', {
+        center: [20, 0],
+        zoom: 2,
+        minZoom: 2,
+        maxZoom: 18,
+        zoomControl: true,
+        worldCopyJump: true
+    });
+    
+    // Add a cyberpunk-style map
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap contributors, © CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    // Store elements
+    var threatLines = [];
+    var markers = [];
+    var arrows = [];
+
+    // Define major cyber activity hubs (both sources and targets)
+    const cyberHubs = {
+        // Major source countries of cyber attacks
+        attackSources: [
+            { name: "China", coords: [35.8617, 104.1954], weight: 25 },
+            { name: "Russia", coords: [61.5240, 105.3188], weight: 20 },
+            { name: "North Korea", coords: [40.3399, 127.5101], weight: 15 },
+            { name: "Iran", coords: [32.4279, 53.6880], weight: 15 },
+            { name: "Brazil", coords: [-14.2350, -51.9253], weight: 10 },
+            { name: "Vietnam", coords: [14.0583, 108.2772], weight: 8 },
+            { name: "Romania", coords: [45.9432, 24.9668], weight: 7 }
+        ],
+        // Major target countries
+        attackTargets: [
+            { name: "United States", coords: [37.0902, -95.7129], weight: 30 },
+            { name: "United Kingdom", coords: [55.3781, -3.4360], weight: 15 },
+            { name: "Germany", coords: [51.1657, 10.4515], weight: 15 },
+            { name: "Japan", coords: [36.2048, 138.2529], weight: 12 },
+            { name: "South Korea", coords: [35.9078, 127.7669], weight: 12 },
+            { name: "Australia", coords: [-25.2744, 133.7751], weight: 10 },
+            { name: "Canada", coords: [56.1304, -106.3468], weight: 10 },
+            { name: "India", coords: [20.5937, 78.9629], weight: 15 },
+            { name: "France", coords: [46.2276, 2.2137], weight: 12 },
+            { name: "Singapore", coords: [1.3521, 103.8198], weight: 8 }
+        ]
+    };
+
+    // Enhanced threat types with more variety
+    const threatTypes = [
+        { type: 'Malware Attack', color: '#ff0000', icon: '🦠' },
+        { type: 'DDoS Attack', color: '#00ff00', icon: '🌊' },
+        { type: 'Ransomware', color: '#ff00ff', icon: '🔒' },
+        { type: 'Data Breach', color: '#ffff00', icon: '🔑' },
+        { type: 'Phishing Attack', color: '#00ffff', icon: '🎣' },
+        { type: 'Zero-Day Exploit', color: '#ff8800', icon: '💥' },
+        { type: 'SQL Injection', color: '#8800ff', icon: '💉' },
+        { type: 'Botnet Activity', color: '#ff0088', icon: '🤖' },
+        { type: 'APT Attack', color: '#88ff00', icon: '🎯' },
+        { type: 'Supply Chain Attack', color: '#0088ff', icon: '⛓️' },
+        { type: 'Crypto Mining', color: '#ffff88', icon: '⛏️' },
+        { type: 'Man-in-the-Middle', color: '#88ffff', icon: '🕵️' }
+    ];
+
+    // Function to add slight randomness to coordinates
+    function jitterCoordinates(coords, amount = 2) {
+        return [
+            coords[0] + (Math.random() - 0.5) * amount,
+            coords[1] + (Math.random() - 0.5) * amount
+        ];
+    }
+
+    // Enhanced function to generate random threat data
+    function generateThreatData() {
+        const threats = [];
+        const numThreats = 25; // Increased number of simultaneous threats
+        
+        for (let i = 0; i < numThreats; i++) {
+            // Select source and target based on weights
+            const sourceCountry = weightedRandomSelect(cyberHubs.attackSources);
+            const targetCountry = weightedRandomSelect(cyberHubs.attackTargets);
+            const threatInfo = threatTypes[Math.floor(Math.random() * threatTypes.length)];
+
+            // Add jitter to coordinates to prevent overlapping
+            const sourceCoords = jitterCoordinates(sourceCountry.coords);
+            const targetCoords = jitterCoordinates(targetCountry.coords);
+
+            threats.push({
+                source: {
+                    lat: sourceCoords[0],
+                    lng: sourceCoords[1],
+                    name: sourceCountry.name
+                },
+                target: {
+                    lat: targetCoords[0],
+                    lng: targetCoords[1],
+                    name: targetCountry.name
+                },
+                ...threatInfo,
+                intensity: Math.floor(Math.random() * 100)
+            });
+        }
+        return threats;
+    }
+
+    // Helper function for weighted random selection
+    function weightedRandomSelect(array) {
+        const totalWeight = array.reduce((sum, item) => sum + item.weight, 0);
+        let random = Math.random() * totalWeight;
+        
+        for (const item of array) {
+            random -= item.weight;
+            if (random <= 0) {
+                return item;
+            }
+        }
+        return array[0];
+    }
+
+    // Enhanced notification function
+    function addThreatNotification(threat) {
+        const feed = document.getElementById('threat-feed');
+        const notification = document.createElement('div');
+        notification.className = 'threat-notification';
+        notification.style.borderColor = threat.color;
+        notification.innerHTML = `
+            <div style="color: ${threat.color}">
+                ${threat.icon} ${threat.type}
+                <div style="font-size: 0.8em; margin-top: 5px;">
+                    From: ${threat.source.name}
+                    <br>
+                    To: ${threat.target.name}
+                    <div style="font-size: 0.9em; color: #888;">
+                        Intensity: ${threat.intensity}%
+                    </div>
+                </div>
+            </div>
+        `;
+        feed.appendChild(notification);
+        
+        setTimeout(() => notification.remove(), 5000);
+    }
+
+    // Enhanced location label function
+    function createLocationLabel(position, isSource, color, countryName) {
+        const label = L.divIcon({
+            className: 'location-label',
+            html: `
+                <div style="color: ${color}; text-align: center;">
+                    <div>${isSource ? '⚡ Source' : '🎯 Target'}</div>
+                    <div style="font-size: 10px;">${countryName}</div>
+                </div>
+            `,
+            iconSize: [100, 40]
+        });
+
+        return L.marker([position.lat, position.lng], {
+            icon: label,
+            zIndexOffset: 1000
+        }).addTo(map);
+    }
+
+    // Function to create moving arrow along the line
+    function createMovingArrow(points, color) {
+        const arrow = document.createElement('div');
+        arrow.className = 'threat-arrow';
+        arrow.style.color = color;
+        arrow.innerHTML = '➤';
+        document.body.appendChild(arrow);
+
+        let currentIndex = 0;
+        const arrowAnimation = setInterval(() => {
+            if (currentIndex >= points.length - 1) {
+                clearInterval(arrowAnimation);
+                arrow.remove();
+                return;
+            }
+
+            const point = map.latLngToContainerPoint(L.latLng(points[currentIndex]));
+            arrow.style.left = `${point.x}px`;
+            arrow.style.top = `${point.y}px`;
+
+            // Calculate rotation angle
+            const nextPoint = map.latLngToContainerPoint(L.latLng(points[currentIndex + 1]));
+            const angle = Math.atan2(nextPoint.y - point.y, nextPoint.x - point.x) * 180 / Math.PI;
+            arrow.style.transform = `rotate(${angle}deg)`;
+
+            currentIndex++;
+        }, 50);
+
+        return { element: arrow, animation: arrowAnimation };
+    }
+
+    // Function to create curved line points
+    function getCurvedPoints(start, end) {
+        const latlngs = [];
+        const offsetX = end[1] - start[1];
+        const offsetY = end[0] - start[0];
+        
+        const center = [
+            start[0] + offsetY * 0.5,
+            start[1] + offsetX * 0.5
+        ];
+        
+        const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+        const curvature = distance * 0.2;
+        
+        const controlPoint = [
+            center[0] + curvature * (offsetX > 0 ? 1 : -1),
+            center[1] + curvature * (offsetY > 0 ? 1 : -1)
+        ];
+
+        for (let t = 0; t <= 1; t += 0.02) {
+            const point = [
+                Math.pow(1-t, 2) * start[0] + 
+                2 * (1-t) * t * controlPoint[0] + 
+                Math.pow(t, 2) * end[0],
+                Math.pow(1-t, 2) * start[1] + 
+                2 * (1-t) * t * controlPoint[1] + 
+                Math.pow(t, 2) * end[1]
+            ];
+            latlngs.push(point);
+        }
+        
+        return latlngs;
+    }
+
+    // Map controls
+    document.getElementById('resetView').addEventListener('click', () => {
+        map.setView([20, 0], 2);
+    });
+
+    document.getElementById('toggleFullscreen').addEventListener('click', () => {
+        const mapElement = document.getElementById('threat-map');
+        if (!document.fullscreenElement) {
+            mapElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    });
+
+    // Update the map update frequency
+    const updateInterval = 3000; // Update every 3 seconds
+
+    // Enhanced update function
+    function updateMap() {
+        // Clear existing elements
+        threatLines.forEach(threat => {
+            map.removeLayer(threat.line);
+            clearInterval(threat.animation);
+            threat.arrow?.element.remove();
+            clearInterval(threat.arrow?.animation);
+        });
+        markers.forEach(marker => {
+            map.removeLayer(marker);
+        });
+        threatLines = [];
+        markers = [];
+
+        // Get new threat data
+        const threats = generateThreatData();
+
+        // Add new threats
+        threats.forEach(threat => {
+            const curvePoints = getCurvedPoints(
+                [threat.source.lat, threat.source.lng],
+                [threat.target.lat, threat.target.lng]
+            );
+
+            // Create the line with gradient effect
+            const line = L.polyline(curvePoints, {
+                color: threat.color,
+                weight: 2,
+                opacity: 0.8,
+                className: 'glow'
+            }).addTo(map);
+
+            // Create source and target labels with country names
+            const sourceLabel = createLocationLabel(threat.source, true, threat.color, threat.source.name);
+            const targetLabel = createLocationLabel(threat.target, false, threat.color, threat.target.name);
+            markers.push(sourceLabel, targetLabel);
+
+            // Create moving arrow
+            const arrow = createMovingArrow(curvePoints, threat.color);
+
+            // Add notification
+            addThreatNotification(threat);
+
+            threatLines.push({
+                line: line,
+                arrow: arrow
+            });
+        });
+    }
+
+    // Initial update
+    updateMap();
+
+    // Set up rapid updates
+    setInterval(updateMap, updateInterval);
+</script>
+{% endblock %} 
