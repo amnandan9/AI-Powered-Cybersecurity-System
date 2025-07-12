@@ -1,0 +1,71 @@
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap');
+
+body {
+    font-family: 'Space Grotesk', sans-serif;
+    background-color: #0f172a; /* Dark background */
+    color: #e2e8f0; /* Light text */
+    margin: 0;
+    padding: 0;
+}
+
+/* Header */
+header {
+    background: #1e293b; /* Dark blue */
+    padding: 20px;
+    text-align: center;
+    font-size: 24px;
+}
+
+/* Navigation Bar */
+nav ul {
+    list-style: none;
+    padding: 10px 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 15px;
+}
+
+nav ul li a {
+    color: #93c5fd; /* Light blue */
+    text-decoration: none;
+    font-weight: 500;
+    transition: 0.3s ease-in-out;
+}
+
+nav ul li a:hover {
+    color: #3b82f6; /* Brighter blue */
+    text-decoration: underline;
+}
+
+/* Main Content */
+main {
+    padding: 20px;
+    text-align: center;
+    min-height: 50vh; /* Ensures content spacing */
+}
+
+/* Footer */
+footer {
+    background: #1e293b; /* Darker footer */
+    text-align: center;
+    padding: 10px;
+    color: #a5b4fc; /* Soft purple-blue */
+}
+
+/* Buttons (if needed) */
+button {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+button:hover {
+    background-color: #2563eb;
+}
