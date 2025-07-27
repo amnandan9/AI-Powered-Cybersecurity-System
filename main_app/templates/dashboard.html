@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Navigation</h4>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="{% url 'main_app:dashboard' %}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                        <a href="{% url 'main_app:threats' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shield-alt"></i> Threat Analysis
+                        </a>
+                        <a href="{% url 'monitoring:logs' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-chart-line"></i> Security Monitoring
+                        </a>
+                        <a href="{% url 'darkweb:alerts' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user-secret"></i> Dark Web Intelligence
+                        </a>
+                        <a href="{% url 'main_app:analyze_logs' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-search"></i> Log Analysis
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Threat Monitoring Dashboard</h2>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <h5 class="card-title">Security Status</h5>
+                                    <div id="threat-chart">
+                                        <!-- Chart.js or Plotly graphs will be rendered here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <h5 class="card-title">Recent Alerts</h5>
+                                    <div id="alerts-list">
+                                        <!-- Recent alerts will be displayed here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
