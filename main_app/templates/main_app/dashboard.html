@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Cyber Threat Detection{% endblock %}
+
+{% block extra_css %}
+<style>
+    .welcome-section {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .welcome-section h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .welcome-section p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+    }
+    .dashboard-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--border-color);
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        margin-bottom: 20px;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+    }
+    .card-header {
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 15px;
+    }
+    .threat-item {
+        border-left: 4px solid #3498db;
+        padding: 10px;
+        margin-bottom: 10px;
+        background: rgba(0, 0, 0, 0.05);
+        color: var(--text-color);
+        border-radius: 5px;
+    }
+    [data-theme="dark"] .threat-item {
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .alert-item {
+        border-left: 4px solid #e74c3c;
+        padding: 10px;
+        margin-bottom: 10px;
+        background: rgba(0, 0, 0, 0.05);
+        color: var(--text-color);
+        border-radius: 5px;
+    }
+    [data-theme="dark"] .alert-item {
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .view-all {
+        text-align: right;
+        margin-top: 10px;
+    }
+    .error-message {
+        background-color: #fee2e2;
+        border-left: 4px solid #ef4444;
+        color: #991b1b;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 5px;
+    }
+    .category-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    .category-item {
+        background: rgba(0, 0, 0, 0.05);
+        color: var(--text-color);
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #3498db;
+    }
+    [data-theme="dark"] .category-item {
+        background: rgba(255, 255, 255, 0.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="welcome-section">
+    <h1>Welcome back, {{ user.username }}!</h1>
+    <p>Here's your security overview</p>
+</div>
+
+<div class="container mt-4">
+    {% if error %}
+    <div class="error-message">
+        <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Main Threats Section -->
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Latest Threat</h5>
+                </div>
+                <div class="card-body">
+                    {% if main_threats %}
+                        {% for threat in main_threats %}
+                        <div class="threat-item">
+                            <h6>{{ threat.threat_type.name }}</h6>
+                            <p class="mb-1">IP: {{ threat.ip_address }}</p>
+                            <small class="text-muted">Confidence: {{ threat.confidence_score }}%</small>
+                            <small class="text-muted d-block">Status: {{ threat.status }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No recent threats detected.</p>
+                    {% endif %}
+                    <div class="view-all">
+                        <a href="{% url 'main_app:threats' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Threat Monitoring Section -->
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Latest Monitoring Alert</h5>
+                </div>
+                <div class="card-body">
+                    {% if monitoring_threats %}
+                        {% for threat in monitoring_threats %}
+                        <div class="threat-item">
+                            <h6>{{ threat.threat_type }}</h6>
+                            <p class="mb-1">Source: {{ threat.source_ip }}</p>
+                            <p class="mb-1">Destination: {{ threat.destination_ip }}</p>
+                            <small class="text-muted">Severity: {{ threat.severity }}</small>
+                            <small class="text-muted d-block">Risk Score: {{ threat.ai_risk_score }}%</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No active monitoring threats.</p>
+                    {% endif %}
+                    <div class="view-all">
+                        <a href="{% url 'monitoring:threat_dashboard' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dark Web Alerts Section -->
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-globe me-2"></i>Latest Dark Web Alert</h5>
+                </div>
+                <div class="card-body">
+                    {% if dark_web_alerts %}
+                        {% for alert in dark_web_alerts %}
+                        <div class="alert-item">
+                            <h6>{{ alert.title }}</h6>
+                            <p class="mb-1">{{ alert.description }}</p>
+                            <small class="text-muted">Source: {{ alert.source }}</small>
+                            <small class="text-muted d-block">Risk Level: {{ alert.risk_level }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No recent dark web alerts.</p>
+                    {% endif %}
+                    <div class="view-all">
+                        <a href="{% url 'darkweb:dark_web_dashboard' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Threat Categories Section -->
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-tags me-2"></i>Threat Categories</h5>
+                </div>
+                <div class="card-body">
+                    {% if categories %}
+                        <div class="category-grid">
+                            {% for category in categories %}
+                            <div class="category-item">
+                                <h6>{{ category.name }}</h6>
+                                <small class="text-muted">{{ category.description }}</small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="view-all">
+                            <a href="{% url 'main_app:threat_categories' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No threat categories defined.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
