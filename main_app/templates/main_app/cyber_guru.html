@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cyber Guru - AI Security Assistant{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">🔐💡🧠🤖Cyber Guru🛡️🔍💻🕵️</h3>
+                </div>
+                <div class="card-body">
+                    <div id="chat-messages" class="mb-3" style="height: 400px; overflow-y: auto;">
+                        <!-- Messages will be displayed here -->
+                    </div>
+                    <form id="chat-form" method="post">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="text" id="user-input" class="form-control" placeholder="Ask your cybersecurity question..." required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Send
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .message {
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+    }
+    .user-message {
+        background-color: #e9ecef;
+        color: #212529;
+        margin-left: 20%;
+    }
+    [data-theme="dark"] .user-message {
+        background-color: #334155;
+        color: #f1f5f9;
+    }
+    .bot-message {
+        background-color: #007bff;
+        color: white;
+        margin-right: 20%;
+    }
+    [data-theme="dark"] .bot-message {
+        background-color: #1e40af;
+        color: #f1f5f9;
+    }
+</style>
+
+<script>
+document.getElementById('chat-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const userInput = document.getElementById('user-input');
+    const message = userInput.value.trim();
+    
+    if (message) {
+        // Add user message to chat
+        addMessage(message, 'user');
+        
+        // Send message to server
+        fetch('/cyber-guru/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ message: message })
+        })
+        .then(response => response.json())
+        .then(data => {
+            addMessage(data.response, 'bot');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            addMessage('Sorry, there was an error processing your request.', 'bot');
+        });
+        
+        userInput.value = '';
+    }
+});
+
+function addMessage(text, sender) {
+    const chatMessages = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}-message`;
+    messageDiv.textContent = text;
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+</script>
+{% endblock %} 
