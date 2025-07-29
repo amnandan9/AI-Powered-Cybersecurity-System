@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Threat Analysis{% endblock %}
+
+{% block content %}
+    <h2>Analyze Security Logs</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label for="logfile">Upload Log File:</label>
+        <input type="file" name="logfile" required>
+        <button type="submit">Analyze</button>
+    </form>
+
+    <h3>Prediction Results</h3>
+    <div id="results">
+        <!-- AI-generated predictions will be shown here -->
+    </div>
+{% endblock %}
