@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+
+{% block title %}Threat Analysis - Cyber Threat Detection{% endblock %}
+
+{% block extra_css %}
+<style>
+    .refresh-button {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .refresh-button:hover {
+        background: linear-gradient(45deg, #2980b9, #3498db);
+        transform: translateY(-2px);
+    }
+    .refresh-button:disabled {
+        background: #95a5a6;
+        cursor: not-allowed;
+    }
+    .analysis-details {
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    .analysis-details ul {
+        list-style-type: none;
+        padding-left: 0;
+    }
+    .analysis-details li {
+        padding: 5px 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .analysis-details li:last-child {
+        border-bottom: none;
+    }
+    .threat-score {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .threat-score.high {
+        color: #dc3545;
+    }
+    .threat-score.medium {
+        color: #ffc107;
+    }
+    .threat-score.low {
+        color: #28a745;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0">IP Threat Analysis</h4>
+                </div>
+                <div class="card-body">
+                    {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+                    </div>
+                    {% endif %}
+
+                    {% if success %}
+                    <div class="alert alert-success" role="alert">
+                        <i class="fas fa-check-circle me-2"></i>{{ success }}
+                    </div>
+                    {% endif %}
+
+                    <form method="post" action="{% url 'main_app:analyze_logs' %}" class="mb-4">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="ip_address">IP Address to Analyze:</label>
+                            <input type="text" class="form-control" id="ip_address" name="ip_address" 
+                                   placeholder="Enter IP address (e.g., 192.168.1.1)"
+                                   required>
+                            <small class="form-text text-muted">Enter a valid IPv4 address (e.g., 192.168.1.1, 8.8.8.8)</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">
+                            <i class="fas fa-search"></i> Analyze Threat
+                        </button>
+                    </form>
+
+                    <!-- URL Analysis Form -->
+                    <form method="post" action="{% url 'main_app:analyze_url' %}" class="mb-4">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="url">URL to Analyze:</label>
+                            <input type="url" class="form-control" id="url" name="url" 
+                                   placeholder="Enter URL (e.g., https://example.com)"
+                                   required>
+                            <small class="form-text text-muted">Enter a complete URL including http:// or https://</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">
+                            <i class="fas fa-search"></i> Analyze URL
+                        </button>
+                    </form>
+
+                    {% if url_analysis_results %}
+                    <div class="analysis-details">
+                        <h5>URL Analysis Results</h5>
+                        <div class="threat-score {% if url_analysis_results.confidence > 0.8 %}high{% elif url_analysis_results.confidence > 0.5 %}medium{% else %}low{% endif %}">
+                            Confidence Score: {{ url_analysis_results.confidence|floatformat:2 }}
+                        </div>
+                        <div class="mt-3">
+                            <h6>Threat Type: {{ url_analysis_results.threat_type }}</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Has Ads:</strong> {{ url_analysis_results.details.has_ads|yesno:"Yes,No" }}</li>
+                                <li><strong>Has Malware:</strong> {{ url_analysis_results.details.has_malware|yesno:"Yes,No" }}</li>
+                                <li><strong>Has Phishing:</strong> {{ url_analysis_results.details.has_phishing|yesno:"Yes,No" }}</li>
+                                <li><strong>Has Redirects:</strong> {{ url_analysis_results.details.has_redirects|yesno:"Yes,No" }}</li>
+                                <li><strong>Is Approved:</strong> {{ url_analysis_results.details.is_approved|yesno:"Yes,No" }}</li>
+                                <li><strong>Risk Level:</strong> {{ url_analysis_results.details.risk_level|title }}</li>
+                                {% if url_analysis_results.details.redirect_chain %}
+                                <li><strong>Redirect Chain:</strong>
+                                    <ul>
+                                        {% for redirect in url_analysis_results.details.redirect_chain %}
+                                        <li>{{ redirect }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if analysis_results %}
+                    <div class="analysis-details">
+                        <h5>Analysis Results</h5>
+                        <div class="threat-score {% if analysis_results.confidence > 0.8 %}high{% elif analysis_results.confidence > 0.5 %}medium{% else %}low{% endif %}">
+                            Confidence Score: {{ analysis_results.confidence|floatformat:2 }}
+                        </div>
+                        <div class="mt-3">
+                            <h6>Threat Type: {{ analysis_results.threat_type }}</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Last Seen:</strong> {{ analysis_results.details.last_seen }}</li>
+                                <li><strong>Connection Attempts:</strong> {{ analysis_results.details.connection_attempts }}</li>
+                                <li><strong>Ports Scanned:</strong> {{ analysis_results.details.ports_scanned }}</li>
+                                <li><strong>Geolocation:</strong> {{ analysis_results.details.geolocation }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Threat Analysis Results -->
+            <div class="card mt-4">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Recent Analysis Results</h4>
+                    <div>
+                        <small class="text-white me-2">Last Updated: {{ last_updated|date:"Y-m-d H:i:s" }}</small>
+                        <form method="get" action="{% url 'main_app:fetch_latest_intelligence' %}" style="display: inline;">
+                            <button type="submit" class="refresh-button">
+                                <i class="fas fa-sync-alt me-2"></i>Fetch Latest Intelligence
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="threatsTable">
+                            <thead>
+                                <tr>
+                                    <th>IP Address</th>
+                                    <th>Threat Type</th>
+                                    <th>Confidence</th>
+                                    <th>Status</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody id="threatsTableBody">
+                                {% for threat in threats %}
+                                <tr>
+                                    <td>{{ threat.ip_address }}</td>
+                                    <td>
+                                        <span class="badge {% if threat.threat_type.name == 'External Threat' %}bg-danger{% elif threat.threat_type.name == 'Internal Threat' %}bg-warning{% else %}bg-info{% endif %}">
+                                            {{ threat.threat_type.name }}
+                                        </span>
+                                    </td>
+                                    <td>{{ threat.confidence_score|floatformat:2 }}%</td>
+                                    <td>
+                                        <span class="badge {% if threat.status == 'active' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ threat.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ threat.timestamp|date:"Y-m-d H:i:s" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No threat analysis results yet.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent URL Analysis Results -->
+            <div class="card mt-4">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0">Recent URL Analysis Results</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>URL</th>
+                                    <th>Threat Type</th>
+                                    <th>Confidence</th>
+                                    <th>Risk Level</th>
+                                    <th>Status</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for threat in url_threats %}
+                                <tr>
+                                    <td>{{ threat.url }}</td>
+                                    <td>
+                                        <span class="badge {% if threat.threat_type.name == 'Malicious Ads' %}bg-warning{% elif threat.threat_type.name == 'Phishing' %}bg-danger{% elif threat.threat_type.name == 'Malware' %}bg-dark{% else %}bg-info{% endif %}">
+                                            {{ threat.threat_type.name }}
+                                        </span>
+                                    </td>
+                                    <td>{{ threat.confidence_score|floatformat:2 }}%</td>
+                                    <td>
+                                        <span class="badge {% if threat.risk_level == 'critical' %}bg-danger{% elif threat.risk_level == 'high' %}bg-warning{% elif threat.risk_level == 'medium' %}bg-info{% else %}bg-success{% endif %}">
+                                            {{ threat.risk_level|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if threat.status == 'active' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ threat.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ threat.timestamp|date:"Y-m-d H:i:s" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">No URL analysis results yet.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %} 
