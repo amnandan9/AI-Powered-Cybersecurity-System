@@ -24,3 +24,5 @@ class FeedbackAdmin(admin.ModelAdmin):
     def delete_selected(self, request, queryset):
         queryset.delete()
     delete_selected.short_description = "Delete selected feedback"
+
+# maintenance 2025-08-04
