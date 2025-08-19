@@ -59,3 +59,5 @@ A comprehensive, state-of-the-art cyber threat detection and intelligence platfo
 
 ## 🔒 User Roles
 * **Primary Developer / Admin**: `nandan`
+
+<!-- update 2025-08-19 -->
