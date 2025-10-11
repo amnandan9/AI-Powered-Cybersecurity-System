@@ -17,3 +17,4 @@ def mul(value, arg):
         return float(value) * float(arg)
     except (ValueError, TypeError):
         return 0
+# maintenance 2025-10-11
