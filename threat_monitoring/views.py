@@ -8,8 +8,6 @@ from .services import (
     get_threat_stats,
     analyze_threat,
     update_threat_status,
-    start_threat_monitoring,
-    monitor_network_traffic,
     analyze_website_traffic,
     get_traffic_analysis,
     get_recent_analyses,
@@ -21,10 +19,8 @@ from django.views.decorators.csrf import csrf_exempt
 import logging
 import random
 
-# Start threat monitoring when the module is imported
-monitor_thread = start_threat_monitoring()
-
 logger = logging.getLogger(__name__)
+
 
 @login_required(login_url='/authentication/login/')
 def dashboard(request):

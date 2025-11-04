@@ -3,7 +3,6 @@ from django.utils.timezone import now
 from datetime import datetime, timedelta
 import threading
 import time
-from scapy.all import sniff, IP, TCP, UDP, ICMP, conf
 import logging
 import requests
 from urllib.parse import urlparse
@@ -14,8 +13,16 @@ import random
 
 logger = logging.getLogger(__name__)
 
-# Get the first available interface
-default_interface = conf.iface
+# Attempt to import scapy lazily — do NOT import at module level to avoid startup hangs
+SNIFFING_AVAILABLE = False
+try:
+    import scapy.config  # lightweight probe — does not trigger interface detection
+    SNIFFING_AVAILABLE = True
+except Exception:
+    pass
+
+# Default interface (resolved lazily)
+default_interface = None
 
 def get_location_info(ip_address):
     """
@@ -184,7 +191,29 @@ def log_threat(source_ip, destination_ip, threat_type, description="", **kwargs)
 def monitor_network_traffic(interface: str = None):
     """
     Monitors network traffic in real-time for potential threats.
+    Falls back gracefully if WinPcap/Npcap is not installed.
     """
+    global default_interface
+
+    if not SNIFFING_AVAILABLE:
+        logger.warning("Scapy not available. Network monitoring disabled. Running in simulation mode.")
+        print("Network monitoring is not available. The system will continue to operate with simulated threats.")
+        return
+
+    # Import scapy fully only inside this function (prevents startup hang)
+    try:
+        from scapy.all import sniff, IP, TCP, UDP, ICMP, conf
+    except Exception as e:
+        logger.error(f"Failed to import scapy: {e}")
+        print("Network monitoring is not available. The system will continue to operate with simulated threats.")
+        return
+
+    if default_interface is None:
+        try:
+            default_interface = conf.iface
+        except Exception:
+            default_interface = None
+
     if interface is None:
         interface = default_interface
     
@@ -268,7 +297,17 @@ def monitor_network_traffic(interface: str = None):
     
     try:
         logger.info(f"Starting network monitoring on interface: {interface}")
-        # Use L3socket if WinPcap is not available
+        # Check if packet capture is available before attempting to sniff
+        try:
+            from scapy.arch import get_if_list
+            interfaces = get_if_list()
+            if not interfaces:
+                raise RuntimeError("No network interfaces available for packet capture.")
+        except Exception:
+            logger.warning("Packet capture unavailable (WinPcap/Npcap not installed). Running in simulation mode.")
+            print("Network monitoring is not available. The system will continue to operate with simulated threats.")
+            return
+
         if not conf.L2listen:
             logger.info("WinPcap not available, using L3socket for monitoring")
             conf.L3socket = conf.L3socket
@@ -279,6 +318,7 @@ def monitor_network_traffic(interface: str = None):
         logger.error(f"Error monitoring network: {e}")
         # If monitoring fails, log a warning but continue operation
         logger.warning("Network monitoring is not available. The system will continue to operate with simulated threats.")
+        print("Network monitoring is not available. The system will continue to operate with simulated threats.")
 
 def get_protocol(packet):
     """Determines the protocol of a packet."""
@@ -602,6 +642,3 @@ def get_recent_analyses(limit=5):
     Gets recent traffic analyses.
     """
     return WebsiteTrafficAnalysis.objects.all().order_by('-analysis_date')[:limit]
-
-# Start the monitoring thread when the module is imported
-monitor_thread = start_threat_monitoring() 
