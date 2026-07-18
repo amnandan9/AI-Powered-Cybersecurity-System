@@ -8,7 +8,6 @@ A comprehensive, state-of-the-art cyber threat detection and intelligence platfo
 
 * **🖥️ Security Dashboard**: Real-time overview of recent threats, monitoring logs, and dark web activity.
 * **🗺️ Global Threat Intelligence Map**: Interactive Leaflet-powered visualizer showing geo-located threat origins, targets, and attack lines.
-* **🤖 Cyber Guru (AI Assistant)**: A dedicated AI cybersecurity advisor powered by Gemini API, customized to assist developers and security analysts (built for `nandan`).
 * **📊 Traffic Analysis & Threat Logs**: Captures and parses logs to calculate risk confidence scores and identify attack classifications.
 * **🌓 Theme Toggles**: Immersive, glassmorphic layout supporting seamless dark and light modes with optimized contrast overlays.
 
